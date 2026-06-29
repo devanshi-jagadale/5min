@@ -2,13 +2,15 @@ const router = require('express').Router();
 const protect = require('../middleware/auth');
 const Request = require('../models/Request');
 const Session = require('../models/Session');
+const User = require('../models/User');
+const { sendAcceptedEmail } = require('../config/mailer');
 
 // GET /api/requests — all open requests
 router.get('/', protect, async (req, res) => {
   const requests = await Request.find({
     $or: [
       { status: 'open' },
-      { askedBy: req.user.id }   // always show your own regardless of status
+      { askedBy: req.user.id }
     ]
   })
     .populate('askedBy', 'name rating')
@@ -41,6 +43,12 @@ router.post('/:id/accept', protect, async (req, res) => {
   request.matchedWith = req.user.id;
   request.sessionId   = session._id;
   await request.save();
+
+  // send email notification to learner
+  const learner = await User.findById(request.askedBy);
+  const teacher = await User.findById(req.user.id);
+  sendAcceptedEmail(learner.email, learner.name, teacher.name, request.topic)
+    .catch(err => console.error('Email failed:', err));
 
   res.json({ sessionId: session._id });
 });
