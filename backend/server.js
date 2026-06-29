@@ -7,18 +7,23 @@ const connectDB = require('./config/db');
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = [
+  "https://5min-three.vercel.app",
+  "http://localhost:5173"
+];
+
 const io = new Server(server, {
   cors: {
-    origin: "https://your-vercel-app.vercel.app",
+    origin: allowedOrigins,
     methods: ["GET", "POST"]
   }
 });
 
-connectDB();
-
 app.use(cors({
-  origin: "https://your-vercel-app.vercel.app"
+  origin: allowedOrigins
 }));
+
+connectDB();
 app.use(express.json());
 
 app.use('/api/auth',     require('./routes/auth'));
